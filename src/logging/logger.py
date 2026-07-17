@@ -5,20 +5,18 @@ from pathlib import Path
 from datetime import datetime
 
 class CustomLogger:
-    _configured = False   
+      
     """
     Logger for offline ML training pipelines.
     Creates a new log file for every training run.
     """
-    def __init__(self,log_dir:str="ml_logs",log_type:str="Training",log_level :str = logging.INFO):
-        self.log_dir = Path(log_dir)/log_type
-        self.logs_dir = os.path.join(os.getcwd(),self.log_dir)
-        os.makedirs(self.logs_dir,exist_ok=True)
+    _configured = False 
+    def __init__(self,log_dir:str="ml_logs",log_type:str="training",log_level :int = logging.INFO):
+        self.log_dir = Path.cwd()/log_dir/log_type
+        self.log_dir.mkdir(parents=True,exist_ok=True)
 
 
-        log_file =f"{datetime.now().strftime('%m_%d_%Y_%H_%M_%S')}.log"
-
-        self.log_file_path = os.path.join(self.logs_dir,log_file)
+        self.log_file_path =self.log_dir/f"{datetime.now().strftime('%m_%d_%Y_%H_%M_%S')}.log"
 
         self.log_level = log_level
 
@@ -30,7 +28,7 @@ class CustomLogger:
         
 
         formatter = logging.Formatter("%(message)s")
-        file_handler = logging.FileHandler(self.log_file_path)
+        file_handler = logging.FileHandler(self.log_file_path,encoding="utf-8")
         file_handler.setLevel(self.log_level)
         file_handler.setFormatter(formatter)
 
@@ -47,10 +45,12 @@ class CustomLogger:
 
         structlog.configure(
             processors=[
+                structlog.processors.TimeStamper(fmt="%m_%d_%Y_%H_%M_%S"),
                 structlog.stdlib.add_log_level,
                 structlog.stdlib.add_logger_name,
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
                 structlog.processors.EventRenamer(to="event"),
-                structlog.processors.TimeStamper(fmt="%m_%d_%Y_%H_%M_%S"),
                 structlog.processors.JSONRenderer(),
             ],
             wrapper_class = structlog.stdlib.BoundLogger,
